@@ -2,6 +2,8 @@ import SwiftUI
 import SwiftData
 
 struct SubscriptionForm: View {
+    @Environment(PremiumAccess.self) private var premiumAccess
+
     @Query
     private var categories: [CategoryItem]
     
@@ -23,22 +25,22 @@ struct SubscriptionForm: View {
     
     var body: some View {
         Form {
-            Section("Подписка") {
-                TextField("Название", text: $title)
+            Section("Subscription") {
+                TextField("Name", text: $title)
 
-                TextField("Стоимость, $", text: amountBinding)
+                TextField("Cost, $", text: amountBinding)
                     .amountKeyboard()
 
-                Picker("Период оплаты", selection: $billingPeriod) {
+                Picker("Billing Period", selection: $billingPeriod) {
                     ForEach(BillingPeriod.allCases) { period in
                         Text(period.title).tag(period)
                     }
                 }
             }
 
-            Section("Платеж") {
+            Section("Payment") {
                 DatePicker(
-                    "Первый платеж",
+                    "First Payment",
                     selection: $startPaymentDate,
                     displayedComponents: .date
                 )
@@ -46,7 +48,7 @@ struct SubscriptionForm: View {
                 Picker(
                     selection: $category
                 ) {
-                    Text("Без категории")
+                    Text("Uncategorized")
                         .tag(nil as CategoryItem?)
 
                     ForEach(categories) { item in
@@ -56,33 +58,39 @@ struct SubscriptionForm: View {
                         .tag(item as CategoryItem?)
                     }
                 } label: {
-                    Text("Категория")
+                    Text("Category")
                 }
                 
                 NavigationLink {
                     CategoryCreateScreen()
                 } label: {
-                    Text("Создать категорию")
+                    Text("Create Category")
                         .foregroundColor(.accentColor)
                 }
             }
 
-            Section("Напоминание") {
-                Toggle("Включить напоминание", isOn: $isReminderEnabled)
+            if premiumAccess.isPremium {
+                Section("Reminder") {
+                Toggle("Enable Reminder", isOn: $isReminderEnabled)
 
-                if isReminderEnabled {
-                    Stepper(
-                        "За \(reminderDaysBefore) \(reminderDaysBefore.daysTitle) до оплаты",
-                        value: $reminderDaysBefore,
-                        in: 1...30
-                    )
+                    if isReminderEnabled {
+                        Stepper(
+                            "\(reminderDaysBefore) \(reminderDaysBefore.daysTitle) before payment",
+                            value: $reminderDaysBefore,
+                            in: 1...30
+                        )
+                    }
                 }
             }
 
-            Section("Заметка") {
+            Section("Note") {
                 TextEditor(text: $note)
                     .frame(minHeight: 96)
             }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Color.clear
+                .frame(height: 96)
         }
     }
 }
@@ -91,15 +99,15 @@ private extension BillingPeriod {
     var title: String {
         switch self {
         case .weekly:
-            "Еженедельно"
+            "Weekly"
         case .monthly:
-            "Ежемесячно"
+            "Monthly"
         case .three_monthly:
-            "Раз в 3 месяца"
+            "Every 3 Months"
         case .six_monthly:
-            "Раз в 6 месяцев"
+            "Every 6 Months"
         case .yearly:
-            "Ежегодно"
+            "Yearly"
         }
     }
 }
@@ -110,16 +118,16 @@ private extension Int {
         let lastDigit = self % 10
 
         if (11...14).contains(lastTwoDigits) {
-            return "дней"
+            return "days"
         }
 
         switch lastDigit {
         case 1:
-            return "день"
+            return "day"
         case 2...4:
-            return "дня"
+            return "days"
         default:
-            return "дней"
+            return "days"
         }
     }
 }

@@ -4,6 +4,7 @@ import SwiftData
 struct SubscriptionCreateScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(PremiumAccess.self) private var premiumAccess
 
     @Query
     private var categories: [CategoryItem]
@@ -24,6 +25,7 @@ struct SubscriptionCreateScreen: View {
     
     private func saveSubscription() {
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shouldEnableReminder = premiumAccess.isPremium && isReminderEnabled
         let subscription = SubscriptionItem(
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             amount: amount.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -31,11 +33,17 @@ struct SubscriptionCreateScreen: View {
             startPaymentData: startPaymentDate,
             category: category,
             note: trimmedNote.isEmpty ? nil : trimmedNote,
-            isReminderEnabled: isReminderEnabled,
+            isReminderEnabled: shouldEnableReminder,
             reminderDaysBefore: reminderDaysBefore
         )
 
         modelContext.insert(subscription)
+        Task {
+            await SubscriptionReminderScheduler.syncReminder(
+                for: subscription,
+                isPremium: premiumAccess.isPremium
+            )
+        }
         dismiss()
     }
 
@@ -51,10 +59,10 @@ struct SubscriptionCreateScreen: View {
                 isReminderEnabled: $isReminderEnabled,
                 reminderDaysBefore: $reminderDaysBefore
             )
-            .navigationTitle("Новая подписка")
+            .navigationTitle("New Subscription")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
+                    Button("Save") {
                         saveSubscription()
                     }
                     .disabled(!canSave)
@@ -73,4 +81,5 @@ struct SubscriptionCreateScreen: View {
             ],
             inMemory: true
         )
+        .environment(PremiumAccess())
 }

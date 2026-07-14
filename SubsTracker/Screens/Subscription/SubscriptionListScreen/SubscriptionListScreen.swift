@@ -3,6 +3,7 @@ import SwiftData
 
 struct SubscriptionListScreen: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(PremiumAccess.self) private var premiumAccess
 
     @Query
     private var subscriptions: [SubscriptionItem]
@@ -13,6 +14,13 @@ struct SubscriptionListScreen: View {
     @State private var selectedCategoryID = CategoryFilterID.all
     @State private var sortOption: SubscriptionSortOption = .nextPaymentAscending
     @State private var subscriptionToEdit: SubscriptionItem?
+    @State private var isShowingCreateSubscription = false
+
+    @Binding private var paywallRoute: PremiumPaywallRoute?
+
+    init(paywallRoute: Binding<PremiumPaywallRoute?> = .constant(nil)) {
+        _paywallRoute = paywallRoute
+    }
 
     private var filteredSubscriptions: [SubscriptionItem] {
         return subscriptions
@@ -33,18 +41,22 @@ struct SubscriptionListScreen: View {
 
     private var selectedCategoryTitle: String {
         if selectedCategoryID == CategoryFilterID.all {
-            return "Все категории"
+            return "All Categories"
         }
 
         if selectedCategoryID == CategoryFilterID.none {
-            return "Без категории"
+            return "Uncategorized"
         }
 
-        return categories.first { $0.id.uuidString == selectedCategoryID }?.title ?? "Категория"
+        return categories.first { $0.id.uuidString == selectedCategoryID }?.title ?? "Category"
     }
 
     private func delete(_ subscription: SubscriptionItem) {
+        let subscriptionID = subscription.id
         modelContext.delete(subscription)
+        Task {
+            await SubscriptionReminderScheduler.cancelReminders(for: subscriptionID)
+        }
     }
 
     var body: some View {
@@ -76,15 +88,22 @@ struct SubscriptionListScreen: View {
                 SubscriptionEditScreen(subscription: subscriptionToEdit)
             }
         }
-        .navigationTitle("Подписки")
+        .navigationDestination(isPresented: $isShowingCreateSubscription) {
+            SubscriptionCreateScreen()
+        }
+        .navigationTitle("Subscriptions")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    SubscriptionCreateScreen()
+                Button {
+                    if premiumAccess.canCreateSubscription(currentCount: subscriptions.count) {
+                        isShowingCreateSubscription = true
+                    } else {
+                        paywallRoute = .upgrade
+                    }
                 } label: {
                     Image(systemName: "plus")
                 }
-                .accessibilityLabel("Добавить подписку")
+                .accessibilityLabel("Add Subscription")
             }
         }
     }
@@ -92,11 +111,11 @@ struct SubscriptionListScreen: View {
     private var filtersView: some View {
         HStack(spacing: 12) {
             Menu {
-                Button("Все категории") {
+                Button("All Categories") {
                     selectedCategoryID = CategoryFilterID.all
                 }
 
-                Button("Без категории") {
+                Button("Uncategorized") {
                     selectedCategoryID = CategoryFilterID.none
                 }
 
@@ -107,7 +126,7 @@ struct SubscriptionListScreen: View {
                 }
             } label: {
                 filterBlock(
-                    title: "Категория",
+                    title: "Category",
                     value: selectedCategoryTitle,
                     systemImage: "square.grid.2x2"
                 )
@@ -122,7 +141,7 @@ struct SubscriptionListScreen: View {
                 }
             } label: {
                 filterBlock(
-                    title: "Сортировка",
+                    title: "Sort",
                     value: sortOption.title,
                     systemImage: "arrow.up.arrow.down"
                 )
@@ -175,9 +194,9 @@ struct SubscriptionListScreen: View {
 
     private var emptyStateView: some View {
         ContentUnavailableView(
-            "Подписок пока нет",
+            "No Subscriptions Yet",
             systemImage: "creditcard",
-            description: Text("Добавьте первую подписку")
+            description: Text("Add your first subscription")
         )
         .padding(.horizontal, 16)
         .padding(.vertical, 32)
@@ -203,7 +222,7 @@ struct SubscriptionListScreen: View {
             }
 
             HStack(spacing: 8) {
-                Label("Следующее списание", systemImage: "calendar")
+                Label("Next Payment", systemImage: "calendar")
 
                 Text(subscription.nextPaymentDate.formatted(date: .abbreviated, time: .omitted))
 
@@ -227,18 +246,18 @@ struct SubscriptionListScreen: View {
             Button {
                 subscriptionToEdit = subscription
             } label: {
-                Label("Редактировать", systemImage: "pencil")
+                Label("Edit", systemImage: "pencil")
             }
             .tint(.blue)
-            .accessibilityLabel("Редактировать \(subscription.title)")
+            .accessibilityLabel("Edit \(subscription.title)")
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 delete(subscription)
             } label: {
-                Label("Удалить", systemImage: "trash")
+                Label("Delete", systemImage: "trash")
             }
-            .accessibilityLabel("Удалить \(subscription.title)")
+            .accessibilityLabel("Delete \(subscription.title)")
         }
     }
 
@@ -248,7 +267,7 @@ struct SubscriptionListScreen: View {
                 .fill(Color(hex: category?.color ?? "#8E8E93"))
                 .frame(width: 8, height: 8)
 
-            Text(category?.title ?? "Без категории")
+            Text(category?.title ?? "Uncategorized")
                 .lineLimit(1)
         }
     }
@@ -276,17 +295,17 @@ private enum SubscriptionSortOption: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .nextPaymentAscending:
-            "Ближайший платеж ↑"
+            "Next Payment ↑"
         case .nextPaymentDescending:
-            "Ближайший платеж ↓"
+            "Next Payment ↓"
         case .amountAscending:
-            "Стоимость ↑"
+            "Cost ↑"
         case .amountDescending:
-            "Стоимость ↓"
+            "Cost ↓"
         case .titleAscending:
-            "Имя ↑"
+            "Name ↑"
         case .titleDescending:
-            "Имя ↓"
+            "Name ↓"
         }
     }
 }
@@ -328,4 +347,5 @@ private extension Array where Element == SubscriptionItem {
         ],
         inMemory: true
     )
+    .environment(PremiumAccess())
 }

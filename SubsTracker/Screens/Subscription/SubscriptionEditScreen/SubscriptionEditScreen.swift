@@ -3,6 +3,7 @@ import SwiftData
 
 struct SubscriptionEditScreen: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(PremiumAccess.self) private var premiumAccess
 
     let subscription: SubscriptionItem
 
@@ -35,6 +36,7 @@ struct SubscriptionEditScreen: View {
 
     private func save() {
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shouldEnableReminder = premiumAccess.isPremium && isReminderEnabled
 
         subscription.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         subscription.amount = amount.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -42,10 +44,16 @@ struct SubscriptionEditScreen: View {
         subscription.startPaymentData = startPaymentDate
         subscription.category = category
         subscription.note = trimmedNote.isEmpty ? nil : trimmedNote
-        subscription.isReminderEnabled = isReminderEnabled
+        subscription.isReminderEnabled = shouldEnableReminder
         subscription.reminderDaysBefore = reminderDaysBefore
         subscription.updatedAt = .now
 
+        Task {
+            await SubscriptionReminderScheduler.syncReminder(
+                for: subscription,
+                isPremium: premiumAccess.isPremium
+            )
+        }
         dismiss()
     }
 
@@ -60,10 +68,10 @@ struct SubscriptionEditScreen: View {
             isReminderEnabled: $isReminderEnabled,
             reminderDaysBefore: $reminderDaysBefore
         )
-        .navigationTitle("Редактирование")
+        .navigationTitle("Edit")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Сохранить") {
+                Button("Save") {
                     save()
                 }
                 .disabled(!canSave)
@@ -81,7 +89,7 @@ struct SubscriptionEditScreen: View {
                 billingPeriod: .monthly,
                 startPaymentData: .now,
                 category: CategoryItem(
-                    title: "Развлечения",
+                    title: "Entertainment",
                     color: "#FF3B30"
                 )
             )
@@ -94,4 +102,5 @@ struct SubscriptionEditScreen: View {
         ],
         inMemory: true
     )
+    .environment(PremiumAccess())
 }

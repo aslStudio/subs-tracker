@@ -3,11 +3,19 @@ import SwiftData
 
 struct CategoryListScreen: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(PremiumAccess.self) private var premiumAccess
 
     @Query(sort: \CategoryItem.title)
     private var categories: [CategoryItem]
 
     @State private var categoryToEdit: CategoryItem?
+    @State private var isShowingCreateCategory = false
+
+    @Binding private var paywallRoute: PremiumPaywallRoute?
+
+    init(paywallRoute: Binding<PremiumPaywallRoute?> = .constant(nil)) {
+        _paywallRoute = paywallRoute
+    }
 
     private func delete(_ category: CategoryItem) {
         modelContext.delete(category)
@@ -17,9 +25,9 @@ struct CategoryListScreen: View {
         List {
             if categories.isEmpty {
                 ContentUnavailableView(
-                    "Категорий пока нет",
+                    "No Categories Yet",
                     systemImage: "square.grid.2x2",
-                    description: Text("Добавьте первую категорию для подписок")
+                    description: Text("Add your first subscription category")
                 )
                 .padding(.horizontal, 16)
                 .padding(.vertical, 32)
@@ -68,18 +76,18 @@ struct CategoryListScreen: View {
                         Button {
                             categoryToEdit = category
                         } label: {
-                            Label("Редактировать", systemImage: "pencil")
+                            Label("Edit", systemImage: "pencil")
                         }
                         .tint(.blue)
-                        .accessibilityLabel("Редактировать \(category.title)")
+                        .accessibilityLabel("Edit \(category.title)")
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             delete(category)
                         } label: {
-                            Label("Удалить", systemImage: "trash")
+                            Label("Delete", systemImage: "trash")
                         }
-                        .accessibilityLabel("Удалить \(category.title)")
+                        .accessibilityLabel("Delete \(category.title)")
                     }
                 }
             }
@@ -101,15 +109,22 @@ struct CategoryListScreen: View {
                 CategoryEditScreen(category: categoryToEdit)
             }
         }
-        .navigationTitle("Категории")
+        .navigationDestination(isPresented: $isShowingCreateCategory) {
+            CategoryCreateScreen()
+        }
+        .navigationTitle("Categories")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    CategoryCreateScreen()
+                Button {
+                    if premiumAccess.canCreateCategory(currentCount: categories.count) {
+                        isShowingCreateCategory = true
+                    } else {
+                        paywallRoute = .upgrade
+                    }
                 } label: {
                     Image(systemName: "plus")
                 }
-                .accessibilityLabel("Добавить категорию")
+                .accessibilityLabel("Add Category")
             }
         }
     }
@@ -126,4 +141,5 @@ struct CategoryListScreen: View {
         ],
         inMemory: true
     )
+    .environment(PremiumAccess())
 }

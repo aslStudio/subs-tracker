@@ -37,10 +37,10 @@ struct CategoryEditScreen: View {
             title: $title,
             color: $color
         )
-        .navigationTitle("Редактирование")
+        .navigationTitle("Edit")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Сохранить") {
+                Button("Save") {
                     save()
                 }
                 .disabled(!canSave)

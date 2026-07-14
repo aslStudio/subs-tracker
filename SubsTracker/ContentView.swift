@@ -9,40 +9,71 @@ enum AppTab: Hashable {
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(PremiumAccess.self) private var premiumAccess
     
     @State private var selectedTab: AppTab = .overview
+    @State private var paywallRoute: PremiumPaywallRoute?
 
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab(
-                "Статистика",
+                "Overview",
                 systemImage: "chart.pie.fill",
                 value: .overview
             ) {
-                NavigationStack {
-                    OverviewScreen()
+                screenContainer {
+                    NavigationStack {
+                        OverviewScreen()
+                    }
                 }
             }
             
             Tab(
-                "Подписки",
+                "Subscriptions",
                 systemImage: "creditcard.fill",
                 value: .subscriptions
             ) {
-                NavigationStack {
-                    SubscriptionListScreen()
+                screenContainer {
+                    NavigationStack {
+                        SubscriptionListScreen(paywallRoute: $paywallRoute)
+                    }
                 }
             }
             
             Tab(
-                "Категории",
+                "Categories",
                 systemImage: "square.grid.2x2.fill",
                 value: .categories
             ) {
-                NavigationStack {
-                    CategoryListScreen()
+                screenContainer {
+                    NavigationStack {
+                        CategoryListScreen(paywallRoute: $paywallRoute)
+                    }
                 }
             }
+        }
+        .sheet(item: $paywallRoute) { _ in
+            PremiumPaywallSheet()
+        }
+    }
+
+    @ViewBuilder
+    private func screenContainer<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        if premiumAccess.isPremium {
+            content()
+        } else {
+            content()
+                .safeAreaInset(edge: .bottom) {
+                    PremiumBanner {
+                        paywallRoute = .upgrade
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 8)
+                    .background(Color(.systemGroupedBackground))
+                }
         }
     }
 }
@@ -56,4 +87,5 @@ struct ContentView: View {
             ],
             inMemory: true
         )
+        .environment(PremiumAccess())
 }

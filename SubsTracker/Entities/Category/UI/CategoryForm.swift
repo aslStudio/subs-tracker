@@ -7,14 +7,18 @@ struct CategoryFormView: View {
     var body: some View {
         Form {
             Section {
-                TextField("Название", text: $title)
+                TextField("Name", text: $title)
 
                 ColorPicker(
-                    "Цвет",
+                    "Color",
                     selection: $color,
                     supportsOpacity: false
                 )
             }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Color.clear
+                .frame(height: 96)
         }
     }
 }

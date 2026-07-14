@@ -10,9 +10,15 @@ import SwiftData
 
 @main
 struct SubsTrackerApp: App {
+    @State private var premiumAccess = PremiumAccess()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(premiumAccess)
+                .task {
+                    await premiumAccess.start()
+                }
         }
         .modelContainer(
             for: [

@@ -32,10 +32,10 @@ struct CategoryCreateScreen: View {
                 title: $title,
                 color: $color
             )
-            .navigationTitle("Новая категория")
+            .navigationTitle("New Category")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
+                    Button("Save") {
                         save()
                     }
                     .disabled(!canSave)

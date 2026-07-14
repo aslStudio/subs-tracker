@@ -9,7 +9,7 @@ struct OverviewScreen: View {
         Dictionary(grouping: subscriptions) { subscription in
             CategoryKey(
                 id: subscription.category?.id.uuidString ?? CategoryKey.uncategorizedID,
-                title: subscription.category?.title ?? "Без категории",
+                title: subscription.category?.title ?? "Uncategorized",
                 color: subscription.category?.color ?? "#8E8E93"
             )
         }
@@ -69,13 +69,13 @@ struct OverviewScreen: View {
             .padding(.vertical, 12)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Статистика")
+        .navigationTitle("Overview")
     }
 
     private var proportionsCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Расходы по категориям")
+                Text("Spending by Category")
                     .font(.headline)
 
                 Spacer()
@@ -87,8 +87,8 @@ struct OverviewScreen: View {
 
             if categorySpendings.isEmpty {
                 emptyBlock(
-                    title: "Нет данных",
-                    subtitle: "Добавьте подписки, чтобы увидеть распределение"
+                    title: "No Data",
+                    subtitle: "Add subscriptions to see the breakdown"
                 )
             } else {
                 HStack(spacing: 18) {
@@ -108,13 +108,13 @@ struct OverviewScreen: View {
 
     private var categoryDetailsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Категории")
+            Text("Categories")
                 .font(.headline)
 
             if categorySpendings.isEmpty {
                 emptyBlock(
-                    title: "Категорий с расходами нет",
-                    subtitle: "Создайте подписку и назначьте категорию"
+                    title: "No Categories with Spending",
+                    subtitle: "Create a subscription and assign a category"
                 )
             } else {
                 ForEach(categorySpendings) { spending in
@@ -163,13 +163,13 @@ struct OverviewScreen: View {
 
     private var currentMonthPaymentsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Ближайшие платежи в этом месяце")
+            Text("Upcoming Payments This Month")
                 .font(.headline)
 
             if currentMonthPayments.isEmpty {
                 emptyBlock(
-                    title: "Платежей нет",
-                    subtitle: "До конца месяца списаний не найдено"
+                    title: "No Payments",
+                    subtitle: "No charges found through the end of the month"
                 )
             } else {
                 ForEach(currentMonthPayments) { payment in
