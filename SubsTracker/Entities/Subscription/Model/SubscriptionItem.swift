@@ -8,7 +8,7 @@ final class SubscriptionItem {
     var amount: String
     var billingPeriod: BillingPeriod
     var startPaymentData: Date
-    var category: String
+    var category: CategoryItem?
     var note: String?
     var isReminderEnabled: Bool
     var reminderDaysBefore: Int
@@ -21,7 +21,7 @@ final class SubscriptionItem {
         amount: String,
         billingPeriod: BillingPeriod,
         startPaymentData: Date,
-        category: String,
+        category: CategoryItem? = nil,
         note: String? = nil,
         isReminderEnabled: Bool = true,
         reminderDaysBefore: Int = 1,

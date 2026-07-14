@@ -14,6 +14,11 @@ struct SubsTrackerApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: SubscriptionItem.self, inMemory: true)
+        .modelContainer(
+            for: [
+                SubscriptionItem.self,
+                CategoryItem.self
+            ],
+        )
     }
 }
